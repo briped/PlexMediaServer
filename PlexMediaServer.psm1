@@ -289,7 +289,7 @@ function Get-Library { # TODO: Maybe split into multiple functions for each libr
 	# GET http://[IP address]:32400/library/sections/[Music Library ID]/all?X-Plex-Token=[PlexToken]
 	# GET http://[IP address]:32400/library/sections/[Photo Library ID]/all?X-Plex-Token=[PlexToken]
 	# GET http://[IP address]:32400/library/sections/[Videos Library ID]/all?X-Plex-Token=[PlexToken]
-	[CmdletBinding()]
+	[CmdletBinding(DefaultParameterSetName = 'All')]
 	param (
 		[Parameter(Mandatory = $false
 			,ParameterSetName = "ByName")]
@@ -335,6 +335,9 @@ function Get-Library { # TODO: Maybe split into multiple functions for each libr
 	)
 	
 	begin {
+		if ($PSCmdlet.ParameterSetName) {
+			$All = $true
+		}
 		if (!$All) {
 			if ($Key)   { $QueryBy = 'Key' }
 			if ($Title) { $QueryBy = 'Title' }
@@ -424,6 +427,47 @@ function Get-LibraryItem { # TODO: Everything
 		$Result = Invoke-WebRequest -Uri $Uri
 		if ($Result.StatusCode -eq 200) {
 			$Results = ([xml]$Result.Content).MediaContainer.Directory
+		}
+	}
+	
+	end {
+		return $Results
+	}
+}
+
+function Get-Metadata { # TODO: Everything.
+	[CmdletBinding()]
+	param (
+		[Parameter(Mandatory = $false)]
+		[Alias('Token')]
+		[string]
+		$PlexToken
+		,
+		[Parameter(Mandatory = $false)]
+		[Alias('Address')]
+		[string]
+		$Server
+		,
+		[Parameter(Mandatory = $false)]
+		[int]
+		$Port = 32400
+		,
+		[Parameter(Mandatory = $false)]
+		[switch]$Ssl
+	)
+	
+	begin {
+		$Protocol = 'http'
+		if ($Ssl)  { $Protocol = 'https' }
+
+		$Uri = "$($Protocol)://$($Server):$($Port)/metadata/?X-Plex-Token=$($PlexToken)"
+		$Results = @()
+	}
+	
+	process {
+		$Result = Invoke-WebRequest -Uri $Uri
+		if ($Result.StatusCode -eq 200) {
+			$Results = ([xml]$Result.Content)
 		}
 	}
 	
